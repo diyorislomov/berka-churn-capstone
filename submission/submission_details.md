@@ -8,13 +8,13 @@ Fill in all fields below before submitting to the LMS.
 
 | Field | Your Response |
 |---|---|
-| **Student Full Name** | *(Your full name)* |
+| **Student Full Name** | Diyorbek Islomov |
 | **Project Track** | Field-Based Scenario |
 | **Scenario Code** | FIN-02 |
 | **Project Title** | Digital Banking Customer Churn Prediction |
-| **Repository URL** | *(Your GitHub repo URL, e.g. https://github.com/yourname/fin02-churn-prediction)* |
-| **Demo / App Link** | *(Link to hosted demo if available, otherwise leave blank)* |
-| **Access Instructions** | *(If private repo, describe how to grant mentor access)* |
+| **Repository URL** | https://github.com/diyorislomov/berka-churn-capstone |
+| **Demo / App Link** | *(not hosted — run demo.ipynb locally or in Colab)* |
+| **Access Instructions** | Repository is public — no access instructions needed |
 
 ---
 

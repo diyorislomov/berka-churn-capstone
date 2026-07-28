@@ -3,7 +3,8 @@
 **Course:** AI/ML Fundamentals — Module 8 Capstone  
 **Track:** Field-Based Scenario | FIN-02  
 **Dataset:** Berka Dataset (PKDD'99 Financial Discovery Challenge)  
-**Author:** *(Your Full Name)*
+**Author:** Diyorbek Islomov  
+**Repository:** https://github.com/diyorislomov/berka-churn-capstone
 
 ---
 
@@ -101,8 +102,8 @@ fin02-churn-prediction/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<your-username>/fin02-churn-prediction.git
-cd fin02-churn-prediction
+git clone https://github.com/diyorislomov/berka-churn-capstone.git
+cd berka-churn-capstone
 
 # 2. Create and activate a virtual environment (recommended)
 python -m venv .venv
@@ -286,7 +287,7 @@ All training data is fully anonymized (Berka Dataset, PKDD'99). No real customer
 
 ## Academic Integrity Statement
 
-This project was completed individually. AI coding assistants (Antigravity/Gemini) were used for scaffolding, code review, documentation drafting, and debugging assistance. All code has been reviewed, understood, and can be explained and defended by the student. Experiment results, figures, and analysis are genuine outputs from running the code on the Berka dataset.
+This project was completed individually by Diyorbek Islomov. AI coding assistants (Antigravity/Gemini) were used for scaffolding, code review, documentation drafting, and debugging assistance. All code has been reviewed, understood, and can be explained and defended by the student. Experiment results, figures, and analysis are genuine outputs from running the code on the Berka dataset.
 
 ---
 
