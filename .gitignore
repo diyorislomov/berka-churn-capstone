@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data — raw files stay local, never committed
+data/raw/
+*.asc
+*.csv.gz
+
+# Model artifacts — too large for git
+models/*.joblib
+models/*.pkl
+models/*.json
+models/mlruns/
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Environment variables / secrets
+.env
+*.env
+secrets.txt
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Reports — figures generated locally
+reports/figures/*.png
+reports/figures/*.pdf
