@@ -1,29 +1,29 @@
-,0
-tx_amount_std,0.07093682
-balance_last,0.064886495
-n_orders,0.05120457
-tenure_days,0.04839981
-balance_mean,0.04769148
-frequency_POPLATEK PO OBRATU,0.047006074
-balance_min,0.043529946
-tx_amount_mean,0.042585246
-crimes_96,0.03869616
-n_entrepreneurs_per1000,0.038596924
-district_id,0.036099438
-n_muni_500_1999,0.035371646
-order_amount_sum,0.03487839
-tx_count,0.034385026
-urban_ratio,0.033857286
-unemp_95,0.032937106
-n_muni_lt499,0.03224518
-n_muni_2000_9999,0.03157139
-unemp_96,0.031431857
-n_cities,0.030813381
-n_inhabitants,0.02868315
-crimes_95,0.028194085
-has_loan,0.02815414
-has_card,0.027435012
-avg_salary,0.025024716
-n_muni_gt10000,0.022944164
-frequency_POPLATEK TYDNE,0.0124403825
-tx_count_per_year,0.0
+feature,importance
+tx_amount_std,0.08960937
+balance_last,0.06419427
+n_orders,0.054636776
+balance_mean,0.048994962
+order_amount_sum,0.048925567
+balance_min,0.048316117
+tenure_days,0.046736103
+avg_salary,0.044103768
+tx_amount_mean,0.042232685
+urban_ratio,0.03799979
+unemp_95,0.036509596
+tx_count_per_year,0.036281966
+frequency_POPLATEK TYDNE,0.033854898
+n_muni_500_1999,0.032585155
+tx_count,0.03210628
+n_entrepreneurs_per1000,0.03096575
+unemp_96,0.029989788
+crimes_95,0.029825296
+crimes_96,0.028141297
+district_id,0.02773709
+n_muni_lt499,0.02585007
+n_inhabitants,0.02565745
+has_loan,0.025111012
+n_muni_2000_9999,0.024709087
+n_cities,0.024285063
+n_muni_gt10000,0.017149549
+frequency_POPLATEK PO OBRATU,0.01349127
+frequency_POPLATEK MESICNE,0.0
