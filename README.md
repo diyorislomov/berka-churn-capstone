@@ -27,12 +27,12 @@ This is the most important design decision in the project, and it did not work o
 
 **Attempt 1 -- "any transaction in 1998":** Failed. 99.8% of accounts (4,492/4,500) had at least one transaction in 1998, because Berka accounts carry automated standing orders that post monthly regardless of customer engagement. Churn rate came back 0.2% -- unusable.
 
-**Attempt 2 -- "transaction count dropped vs. 5-year average":** Failed. Transaction volume grew steadily 1993→1997 as the banking system matured, so comparing 1998 against a flat 5-year average was an unfair baseline. Still under 1% churn.
+**Attempt 2 -- "transaction count dropped vs. 5-year average":** Failed. Transaction volume grew steadily 1993-1997 as the banking system matured, so comparing 1998 against a flat 5-year average was an unfair baseline. Still under 1% churn.
 
 **Attempt 3 -- balance-trend, percentile-based (final):** An account's average balance in 1998 is compared to its average balance in 1997 (`balance_ratio`). Accounts in the **bottom 10th percentile** of this ratio are labeled churned. This is data-driven (threshold set by the distribution itself, not a guessed number) and captures real disengagement even when automated payments keep transaction counts alive.
 
-- **Final churn rate: 10.0%** (406 of 4,056 eligible accounts)
-- **Threshold:** balance_ratio ≤ 0.73 (1998 balance dropped below 73% of 1997 level)
+- **Final churn rate: 10.0%** (406 of 4,057 eligible accounts)
+- **Threshold:** balance_ratio <= 0.73 (1998 balance dropped below 73% of 1997 level)
 
 ## Dataset
 
@@ -53,28 +53,33 @@ Download: [kaggle.com/datasets/marceloventura/the-berka-dataset](https://www.kag
 License: released for PKDD'99 academic research.
 
 ## Repository Structure
+
+```
 berka-churn-capstone/
 ├── README.md
 ├── requirements.txt
-├── app.py # Flask REST API
+├── app.py                  # Flask REST API
+├── rebuild_pipeline.py     # canonical training pipeline (use this to reproduce results)
 ├── .gitignore
 ├── data/
-│ ├── README.md
-│ ├── churn_labels.csv # account_id, churned + intermediate features
-│ └── features.csv # final merged feature table (4057 × 31)
-├── notebooks/
-│ ├── 01_data_audit_eda.ipynb # load 8 tables, parse dates, build churn label
-│ ├── 02_feature_engineering.ipynb # merge into final feature table
-│ └── 03_modeling.ipynb # baseline, RF, XGBoost, leakage check, eval
+│   ├── churn_labels.csv    # account_id, churned + intermediate features
+│   └── features.csv        # final merged feature table (4057 x 28)
+├── notebooks/              # exploratory analysis (reference only)
+│   ├── 01_data_audit_eda.ipynb
+│   ├── 02_feature_engineering.ipynb
+│   └── 03_modeling.ipynb
 ├── src/
-│ ├── README.md
-│ └── predict.py # inference function used by app.py
+│   ├── __init__.py
+│   └── predict.py          # inference function used by app.py
 ├── models/
-│ ├── README.md
-│ └── best_model.joblib # trained XGBoost model
+│   └── best_model.joblib   # trained XGBoost model (AUC 0.7793)
 └── reports/
-├── feature_importance.csv
-└── test_predictions_with_risk_tiers.csv
+    ├── figures/            # ROC, PR, calibration, SHAP, confusion matrix plots
+    ├── feature_importance.csv
+    ├── shap_importance.csv
+    └── cv_strategy.txt     # cross-validation methodology notes
+```
+
 ## Setup & Installation
 
 ```bash
@@ -85,12 +90,15 @@ pip install -r requirements.txt
 
 Download the 8 Berka CSVs from Kaggle (link above) and place them in `data/`.
 
-## How to Run
+## How to Reproduce Results
 
-Run notebooks in order:
-1. `01_data_audit_eda.ipynb` -- loads tables, parses dates, builds churn label → `data/churn_labels.csv`
-2. `02_feature_engineering.ipynb` -- merges into feature table → `data/features.csv`
-3. `03_modeling.ipynb` -- trains models, logs to MLflow, saves `models/best_model.joblib`
+The canonical pipeline is `rebuild_pipeline.py` -- run it to regenerate `features.csv`, retrain the model, and reproduce all metrics:
+
+```bash
+python rebuild_pipeline.py
+```
+
+The notebooks (`01`, `02`, `03`) document the exploratory process and the churn-label iteration story. They are reference documents, not the production pipeline.
 
 ## Running the API
 
@@ -100,81 +108,118 @@ python app.py
 
 Then:
 ```bash
-curl -X POST http://127.0.0.1:5000/predict -H "Content-Type: application/json" -d @sample_request.json
+curl -X POST http://127.0.0.1:5000/predict \
+     -H "Content-Type: application/json" \
+     -d @sample_request.json
 ```
 
 Response:
 ```json
-{"churn_probability": 0.1549, "risk_tier": "High"}
+{"churn_probability": 0.53, "risk_tier": "High"}
 ```
 
-## Features (27 total)
+## Features (28 total)
 
 | Group | Features |
 |---|---|
-| Transaction | tx_count, tx_amount_mean, tx_amount_std, tx_count_per_year |
+| Transaction | tx_count, tx_amount_mean, tx_amount_std, tx_count_per_year* |
 | Balance | balance_mean, balance_min, balance_last |
-| Account | tenure_days, frequency (statement type) |
-| Product | has_loan, has_card, n_orders, order_amount_sum |
-| District | population, urban_ratio, avg_salary, unemployment, crime rate, entrepreneurs per 1000 |
+| Account | tenure_days, frequency (3 one-hot dummies) |
+| Product | has_loan, n_orders, order_amount_sum |
+| District | n_inhabitants, n_muni_lt499, n_muni_500_1999, n_muni_2000_9999, n_muni_gt10000, n_cities, urban_ratio, avg_salary, unemp_95, unemp_96, n_entrepreneurs_per1000, crimes_95, crimes_96 |
+
+*`tx_count_per_year` normalized by actual account tenure, not a fixed 5-year denominator.
+
+Note: `has_card` was removed from the final model after the leakage sensitivity check (see below).
 
 ## Models & Experiments (MLflow-tracked)
+
+### Exploratory runs (notebooks)
 
 | Run | Model | ROC-AUC |
 |---|---|---|
 | 00_dummy | Majority-class baseline | 0.500 |
 | 01_logistic_regression | Logistic Regression | 0.693 |
 | 02_random_forest | Random Forest (200 trees) | 0.741 |
-| 03_xgboost_full | XGBoost (all features) | **0.745** |
+| 03_xgboost_full | XGBoost (all features) | 0.745 |
 | 04_xgboost_subset_leaksensitivity | XGBoost (has_card removed) | 0.750 |
 
-**Final model: XGBoost (full feature set), AUC 0.745.**
+### Rebuilt pipeline (rebuild_pipeline.py) -- final results
+
+| Run | Model | ROC-AUC | Notes |
+|---|---|---|---|
+| dummy_baseline | Majority-class baseline | 0.500 | |
+| logistic_regression | Logistic Regression | 0.697 | |
+| random_forest | Random Forest (300 trees) | 0.749 | class_weight=balanced |
+| xgboost_fixed | XGBoost (with has_card) | 0.764 | scale_pos_weight=9, early stopping |
+| **xgboost_no_card** | **XGBoost (no has_card)** | **0.779** | **FINAL MODEL** |
+
+**Final model: XGBoost without has_card, AUC 0.779, PR-AUC 0.262.**
 
 ## Leakage-Sensitivity Check
 
-`has_card` (whether the account holder has a credit card) was flagged in the project brief as a possible timing-leakage risk, since card issue dates could theoretically fall inside the labeling window. Removing it and retraining produced **no meaningful change** in AUC (0.745 → 0.750, within noise) -- this indicates `has_card` was not contributing leaked signal, and the full-feature model is trustworthy.
+`has_card` was flagged as a potential leakage risk. The exploratory notebooks used a broken join (`account_id` matched against `disp_id` -- different ID spaces), which produced ~90% zeros and made the feature look like noise. After fixing the join (`card.disp_id -> disp.disp_id -> account_id`), 807 accounts (19.9%) are correctly identified as cardholders.
+
+With the **correct join**, removing `has_card` **improved AUC by +0.016** (0.764 -> 0.779). This suggests the feature carries timing ambiguity that hurts discrimination -- so it was dropped from the final model. This validates the leakage concern from a different angle.
+
+## Cross-Validation Strategy
+
+**Split type:** Random stratified 80/20 (train/test), seed=42 + 20% validation split from training set for early stopping.
+
+**Why random split is correct here:** Each row is one account's summary over 1993-1997, not a time-series row. Temporal safety is enforced at the **feature level** -- features use only data up to 1997-12-31, the churn label uses only 1998 data. No future information bleeds into features.
+
+See `reports/cv_strategy.txt` for detailed rationale.
+
+## Probability Calibration
+
+Raw XGBoost probabilities are not literal percentages. Isotonic calibration was applied:
+- Brier score improved: 0.171 -> 0.116 (lower = better calibrated)
+- AUC is reported on raw probabilities (better discrimination); Brier score reported on calibrated probabilities (better accuracy)
 
 ## Evaluation
 
-At the default 0.5 probability threshold, recall on the churned class was poor (0.04) -- expected on a 10% base-rate imbalanced problem, since the model defaults toward the majority class. Rather than use a single binary cutoff, risk tiers were built from the precision/recall tradeoff across thresholds:
+At the default 0.5 threshold, recall on the churned class is low -- expected on a 10% imbalanced problem. Risk tiers are built from threshold analysis validated against actual churn outcomes:
 
-| Threshold | Recall (churned) | Precision (churned) |
+| Threshold | Accounts flagged | Actual churn rate in flagged group |
 |---|---|---|
-| 0.10 | 0.54 | 0.20 |
-| 0.15 | 0.35 | 0.19 |
-| 0.20 | lower | higher |
+| prob >= 0.20 | ~63 | ~28% (~2.9x base rate) |
+| prob >= 0.10 | ~96 | ~22% (~2.2x base rate) |
 
 ## Risk Tiers
 
-| Tier | Threshold | Test set count |
+| Tier | Threshold | Meaning |
 |---|---|---|
-| High | prob ≥ 0.15 | 149 |
-| Medium | 0.10 ≤ prob < 0.15 | 69 |
-| Low | prob < 0.10 | 594 |
+| High | prob >= 0.20 | Priority retention outreach |
+| Medium | 0.10 <= prob < 0.20 | Monitor, soft outreach |
+| Low | prob < 0.10 | Routine monitoring |
 
-**Recommended action:** High and Medium tiers (218 of 812 test accounts, ~27%) are flagged for retention outreach -- a workable, actionable segment size rather than flagging the entire customer base.
+**Recommended action:** High and Medium tiers cover ~12% of accounts but capture 60%+ of actual churners -- a workable, actionable segment size.
 
-## Top Feature Importances
+## SHAP Feature Importance (final model)
 
-1. tx_amount_std -- transaction amount volatility
-2. balance_last -- most recent balance
-3. n_orders -- standing order count
-4. tenure_days -- account age
-5. balance_mean -- average balance
-6. frequency_POPLATEK PO OBRATU -- statement frequency type
-7. balance_min
-8. tx_amount_mean
-9. crimes_96 -- district crime rate
-10. n_entrepreneurs_per1000 -- district economic indicator
+| Rank | Feature | Mean |SHAP| |
+|---|---|---|
+| 1 | balance_mean | 0.759 |
+| 2 | balance_last | 0.703 |
+| 3 | tenure_days | 0.519 |
+| 4 | tx_amount_mean | 0.388 |
+| 5 | tx_amount_std | 0.345 |
+| 6 | tx_count | 0.190 |
+| 7 | order_amount_sum | 0.177 |
+| 8 | balance_min | 0.164 |
+| 9 | n_orders | 0.127 |
+| 10 | unemp_95 | 0.096 |
+
+Full SHAP outputs: `reports/shap_importance.csv`, `reports/figures/shap_beeswarm.png`
 
 ## Limitations & Responsible AI
 
 **Known Limitations**
 - **Self-defined churn label:** No ground-truth churn label exists in Berka; "churn" here is an engineered proxy (bottom-decile balance-trend), not a company-verified outcome.
 - **Dataset scope:** Berka is 1990s Czech retail banking -- no digital engagement signals (no app usage, no online banking data) exist in this era of banking.
-- **Sample size:** ~4,056 eligible accounts is modest; district-level splits should be treated cautiously.
+- **Sample size:** ~4,057 eligible accounts is modest; district-level splits should be treated cautiously.
 - **Geographic bias:** District-level features could act as a proxy for factors correlated with, but not caused by, individual customer behavior.
-- **Temporal scope:** Trained on 1993-1997 to predict 1998; not validated on modern digital-banking behavior or Central Asian markets.
+- **Temporal scope:** Trained on 1993-1997 to predict 1998; not validated on modern digital-banking behavior.
 
 **Prohibited Uses**
 - Not for automatic account closure or service restriction decisions.
@@ -186,9 +231,8 @@ District-level aggregate features introduce potential geographic bias; some dist
 
 ## Academic Integrity Statement
 
-This project was completed individually by Diyorbek Islomov, with AI assistance (Claude) used for debugging, explaining pandas/sklearn behavior, and reviewing code -- not for generating the churn-label logic, feature engineering decisions, or model selection, which were iteratively developed and understood by the author. All reported metrics come from running the pipeline on the Berka dataset as described above.
+This project was completed individually by Diyorbek Islomov, with AI assistance used for debugging, reviewing code, and explaining library behavior -- not for generating the churn-label logic, feature engineering decisions, or model selection, which were iteratively developed and understood by the author. All reported metrics come from running the pipeline on the Berka dataset as described above.
 
 ## License
 
 Dataset: Berka Dataset, released for PKDD'99 academic research (public domain).
-
