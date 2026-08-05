@@ -1,0 +1,29 @@
+feature,mean_abs_shap
+balance_mean,0.75896245
+balance_last,0.70308703
+tenure_days,0.5190294
+tx_amount_mean,0.38832125
+tx_amount_std,0.34530303
+tx_count,0.19016826
+order_amount_sum,0.17682987
+balance_min,0.16374435
+n_orders,0.1265278
+unemp_95,0.09606994
+n_inhabitants,0.08401416
+urban_ratio,0.07387436
+unemp_96,0.07218891
+crimes_96,0.06963574
+n_muni_2000_9999,0.052183382
+n_muni_gt10000,0.050741352
+has_loan,0.04686911
+district_id,0.045399796
+n_muni_lt499,0.044643708
+n_entrepreneurs_per1000,0.04258001
+n_muni_500_1999,0.035099193
+n_cities,0.033194453
+crimes_95,0.025738422
+avg_salary,0.024423743
+has_card,0.0141268
+frequency_POPLATEK PO OBRATU,0.0025978659
+frequency_POPLATEK TYDNE,0.0024789036
+tx_count_per_year,0.0

@@ -1,0 +1,26 @@
+
+CROSS-VALIDATION STRATEGY — FIN-02 CHURN PREDICTION
+====================================================
+
+Split type:    Random stratified 80/20 (train/test), seed=42
+Why random:    Each row = one account's SUMMARY over 1993-1997
+               (not a time-series row). There is no within-row
+               temporal ordering to preserve.
+
+Temporal safety is handled at the FEATURE level, not the split level:
+  - Features use only data from 1993-12-31 and earlier (observation window)
+  - Churn label uses only 1998 data (labeling window)
+  - No future information bleeds into features
+
+Why a time-based account split would NOT help here:
+  - Accounts opened in 1993 vs 1995 have different tenure
+  - Splitting by account open date would create tenure-based bias,
+    not reduce leakage (there is no cross-row leakage risk)
+
+Leakage audit (already in README):
+  - Removed has_card and has_loan from a sensitivity run
+  - AUC was unchanged -> core model performance is clean
+
+Calibration:
+  - Raw XGBoost probabilities checked vs isotonic calibration
+  - Risk tiers (High/Medium/Low) based on calibrated probabilities

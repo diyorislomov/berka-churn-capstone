@@ -16,7 +16,13 @@ def load_model():
     return _model, _feature_cols
 
 def risk_tier(prob):
-    if prob >= 0.15:
+    """
+    Thresholds calibrated against actual churn rates (see reports/cv_strategy.txt):
+      prob >= 0.20  -> High   (actual churn rate ~28.6% in test set, 2.9x base rate)
+      prob >= 0.10  -> Medium (actual churn rate ~21.9% in test set, 2.2x base rate)
+      prob <  0.10  -> Low    (routine monitoring)
+    """
+    if prob >= 0.20:
         return 'High'
     elif prob >= 0.10:
         return 'Medium'
