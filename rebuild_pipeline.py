@@ -308,17 +308,36 @@ with mlflow.start_run(run_name="xgboost_no_card"):
         print(f"  NOTE: has_card contributes {abs(delta):.4f} AUC — now with correct join")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 6. SAVE BEST MODEL (explicit single save)
+# 6. SAVE BEST MODEL (explicit single save — xgb_nc + calibration)
 # ══════════════════════════════════════════════════════════════════════════════
 print("\n" + "=" * 60)
 print("STEP 6: Saving best model")
 print("=" * 60)
 
-best_model = xgb  # XGBoost with fixed has_card, scale_pos_weight, early stopping
-joblib.dump(best_model, "models/best_model.joblib")
-print(f"  Saved models/best_model.joblib")
-print(f"  Best model: XGBoost, AUC={results['XGBoost']:.4f}")
-print(f"  Features: {len(FEAT_COLS)}")
+# Choose model with better AUC (xgb_nc removes has_card → higher AUC)
+best_raw = xgb_nc if results['XGBoost_no_card'] > results['XGBoost'] else xgb
+print(f"  Best raw model: {'XGBoost_no_card' if results['XGBoost_no_card'] > results['XGBoost'] else 'XGBoost'}")
+print(f"  AUC: {max(results['XGBoost_no_card'], results['XGBoost']):.4f}")
+
+# Apply isotonic calibration so output probabilities reflect true churn rates
+# (scale_pos_weight=9 skews raw probabilities — calibration corrects this)
+from sklearn.calibration import CalibratedClassifierCV
+best_feat = FEAT_NO_CARD if results['XGBoost_no_card'] > results['XGBoost'] else FEAT_COLS
+cal_model = CalibratedClassifierCV(best_raw, method='isotonic', cv='prefit')
+cal_model.fit(X_tr[best_feat], y_tr)
+
+# Verify calibrated model performance
+cal_probs = cal_model.predict_proba(X_test[best_feat])[:, 1]
+cal_auc = roc_auc_score(y_test, cal_probs)
+print(f"  Calibrated AUC: {cal_auc:.4f}")
+print(f"  Calibrated threshold check:")
+for thresh in [0.10, 0.20, 0.25]:
+    mask = cal_probs >= thresh
+    if mask.sum() > 0:
+        print(f"    prob >= {thresh:.2f}: {mask.sum():3d} accounts, actual churn = {y_test[mask].mean():.1%}")
+
+joblib.dump(cal_model, "models/best_model.joblib")
+print(f"  Saved models/best_model.joblib (CalibratedClassifierCV wrapping XGBoost)")
 
 # Save feature importance
 fi = pd.DataFrame({'feature': FEAT_COLS, 'importance': xgb.feature_importances_})
